@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hyper-Realistic Driving World | Intro Showcase</title>
+  <meta name="description"
+    content="Hyper-realistic diorama intro for next-generation car driving world featuring cyberpunk rally buggy, blooming sakura trees, vintage lantern lighting, and synthwave atmosphere." />
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+
+<body>
+  <!-- Three.js Canvas Container -->
+  <div id="canvas-container"></div>
+
+
+
+  <!-- Top Right Quick Controls -->
+  <div class="top-controls">
+    <button class="ctrl-btn" id="sound-toggle" title="Toggle Synth Audio & Engine Rumble">
+      <span class="sound-icon">🔇</span> Sound
+    </button>
+    <button class="ctrl-btn active" id="btn-orbit-toggle" title="Toggle 360 Auto Orbit">
+      <span class="btn-icon">🔄</span> Auto Orbit
+    </button>
+    <button class="ctrl-btn" id="btn-horn" title="Honk Horn">
+      <span class="btn-icon">📢</span> Horn
+    </button>
+    <button class="ctrl-btn highlight" id="btn-rev" title="Rev Engine">
+      <span class="btn-icon">⚡</span> Rev Engine
+    </button>
+  </div>
+
+  <!-- Bottom Interactive Control Dashboard (Glassmorphic) -->
+  <footer class="dashboard-bar interactive-ui">
+    <!-- Livery Color Swatches -->
+    <div class="dash-section">
+      <span class="section-label">PAINT COLOR</span>
+      <div class="color-palette">
+        <button class="color-swatch active" data-color="0x00d2d3" style="--c: #00d2d3;"
+          title="Cyber Cyan (Default)"></button>
+        <button class="color-swatch" data-color="0x9d4edd" style="--c: #9d4edd;" title="Royal Purple"></button>
+        <button class="color-swatch" data-color="0xe0314b" style="--c: #e0314b;" title="Vibrant Red"></button>
+        <button class="color-swatch" data-color="0xffbe1a" style="--c: #ffbe1a;" title="Cyber Yellow"></button>
+      </div>
+    </div>
+
+    <!-- Camera Angles -->
+    <div class="dash-section">
+      <span class="section-label">CAMERA VIEW</span>
+      <div class="cam-presets">
+        <button class="dash-btn cam-btn active" id="cam-iso" title="Original Diorama View">Isometric</button>
+        <button class="dash-btn cam-btn" id="cam-close" title="Close-Up View">Close-Up</button>
+        <button class="dash-btn cam-btn" id="cam-front" title="Front Hero View">Front</button>
+        <button class="dash-btn cam-btn" id="cam-top" title="Top-Down View">Top</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Launch / Status Toast Notification -->
+  <div class="launch-toast" id="launch-toast">
+    <div class="toast-glow"></div>
+    <div class="toast-icon">🚀</div>
+    <div class="toast-body">
+      <h4>V8 ENGINE IGNITED</h4>
+      <p>Simulation active. Orbit to inspect hyper-realistic diorama.</p>
+    </div>
+  </div>
+
+  <!-- Main Logic -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+
+</html>
