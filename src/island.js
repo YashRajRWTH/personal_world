@@ -18,7 +18,7 @@ export class IslandWorld {
     // Expansion & Reveal State
     this.isRevealing = false;
     this.revealRadius = 4.8; // Starts at pedestal radius
-    this.targetRevealRadius = 450.0;
+    this.targetRevealRadius = 1200.0;
     this.revealSpeed = 0.0;
     this.isFullyRevealed = false;
     this.waveColor = new THREE.Color(0x00d2d3);
@@ -48,9 +48,9 @@ export class IslandWorld {
   }
 
   createSky() {
-    // 360-degree Sunset Sky Dome with real sunset resting on the distant sea horizon
-    const skyGeo = new THREE.SphereGeometry(1100, 48, 32);
-    const sunDir = new THREE.Vector3(-0.58, 0.075, -0.81).normalize();
+    // 360-degree Sunset Sky Dome with real setting sun resting on the sea horizon
+    const skyGeo = new THREE.SphereGeometry(2200, 48, 32);
+    const sunDir = new THREE.Vector3(-0.58, 0.002, -0.81).normalize();
 
     this.skyMat = new THREE.ShaderMaterial({
       side: THREE.BackSide,
@@ -74,50 +74,47 @@ export class IslandWorld {
           vec3 dir = normalize(vWorldPos);
           float y = dir.y;
 
-          // Realistic Ocean Sunset Sky Gradient:
+          // Pure Sunset Sky Gradient:
           // Deep evening indigo zenith
-          vec3 zenith = vec3(0.08, 0.07, 0.17);
+          vec3 zenith = vec3(0.10, 0.08, 0.22);
           // Twilight purple-rose
-          vec3 upper = vec3(0.38, 0.15, 0.28);
+          vec3 upper = vec3(0.40, 0.16, 0.30);
           // Mid sky: warm sunset coral
-          vec3 midSky = vec3(0.82, 0.32, 0.18);
-          // Above sea horizon: fiery sunset orange-amber
+          vec3 midSky = vec3(0.82, 0.34, 0.18);
+          // Lower sky approaching sea horizon: warm sunset orange
           vec3 horizonOrange = vec3(1.0, 0.52, 0.20);
-          // Sea waterline: glowing golden sunset haze
-          vec3 seaHorizon = vec3(1.0, 0.64, 0.28);
+          // Distant ocean below horizon (matches deep ocean dark navy)
+          vec3 oceanBelow = vec3(0.04, 0.14, 0.25);
 
-          vec3 col = seaHorizon;
-          if (y > 0.0) {
-            col = mix(seaHorizon, horizonOrange, smoothstep(0.0, 0.05, y));
-            col = mix(col, midSky, smoothstep(0.05, 0.16, y));
-            col = mix(col, upper, smoothstep(0.16, 0.44, y));
-            col = mix(col, zenith, smoothstep(0.44, 1.0, y));
+          vec3 col;
+          if (y >= 0.0) {
+            col = mix(horizonOrange, midSky, smoothstep(0.0, 0.15, y));
+            col = mix(col, upper, smoothstep(0.15, 0.44, y));
+            col = mix(col, zenith, smoothstep(0.44, 0.95, y));
           } else {
-            // Distant ocean surface below horizon
-            col = mix(seaHorizon, vec3(0.30, 0.14, 0.10), clamp(-y * 3.5, 0.0, 1.0));
+            // Below horizon: smooth match to distant ocean surface
+            col = mix(horizonOrange, oceanBelow, clamp(-y * 24.0, 0.0, 1.0));
           }
 
-          // Soft atmospheric sunset clouds resting just above the distant ocean horizon
-          float cloud1 = sin(dir.x * 8.0 + dir.z * 5.0) * cos(y * 55.0);
-          float cloud2 = sin(dir.z * 12.0 - dir.x * 9.0) * cos(y * 80.0);
-          float clouds = smoothstep(0.40, 0.95, cloud1 * 0.55 + cloud2 * 0.45) * smoothstep(0.22, 0.02, abs(y - 0.04));
-          col = mix(col, vec3(0.88, 0.36, 0.15), clouds * 0.45);
+          // True Euclidean angular distance to sun center
+          float sunDist = length(dir - uSunDir);
 
-          // Sunset Sun far away in the distant sea (compact, small size & deep sunset orange)
-          float sunDot = max(0.0, dot(dir, uSunDir));
+          // Setting sun geometry:
+          // The sun center sits right on the ocean horizon line (uSunDir.y ≈ 0.002).
+          // Above y = 0.0: clean, pure circular dome (half-circle ball).
+          // Below y = 0.0: cleanly cut off by the sea horizon line.
+          // Strictly NO horizontal clouds, NO base platform, NO hat brim!
+          float isAboveHorizon = step(0.0, y);
           
-          // 1. Subtle, tight atmospheric halo around the distant sun
-          col += vec3(1.0, 0.35, 0.08) * pow(sunDot, 55.0) * 0.45;
-          // 2. Warm orange corona hugging the distant sun
-          col += vec3(1.0, 0.45, 0.10) * pow(sunDot, 350.0) * 0.85;
-          
-          // 3. Compact distant sun disk (small and far away on the sea horizon)
-          float sunDisk = smoothstep(0.99986, 0.99995, sunDot);
-          // Deep rich sunset orange color
-          vec3 sunDiskColor = vec3(1.0, 0.36, 0.05);
-          float sunCore = smoothstep(0.99996, 0.99999, sunDot);
-          vec3 sunFinal = mix(sunDiskColor * 1.5, vec3(1.0, 0.58, 0.15) * 1.6, sunCore);
-          col = mix(col, sunFinal, sunDisk);
+          // 1. Radially symmetric gentle glow (strictly clipped at waterline)
+          float sunHalo = exp(-sunDist * 36.0) * 0.28 * isAboveHorizon;
+          col += vec3(1.0, 0.44, 0.12) * sunHalo;
+
+          // 2. Pure circle/ball setting sun disk, bisected by the horizon into half circle
+          float sunRadius = 0.026;
+          float sunDisk = smoothstep(sunRadius, sunRadius - 0.0012, sunDist) * isAboveHorizon;
+          vec3 solidSun = vec3(1.0, 0.46, 0.12) * 2.2;
+          col = mix(col, solidSun, sunDisk);
 
           gl_FragColor = vec4(col, 1.0);
         }
@@ -212,7 +209,7 @@ export class IslandWorld {
         uRevealRadius: { value: this.revealRadius },
         uWaveColor: { value: this.waveColor },
         uTime: { value: 0.0 },
-        uSunDir: { value: new THREE.Vector3(-0.58, 0.075, -0.81).normalize() }
+        uSunDir: { value: new THREE.Vector3(-0.58, 0.002, -0.81).normalize() }
       },
       vertexShader: `
         varying vec3 vWorldPos;
@@ -314,13 +311,18 @@ export class IslandWorld {
   }
 
   createOcean() {
-    // Vast ocean surface plane (800m x 800m, 200 segments) at water level y = 0.18
-    const size = 800;
-    const segments = 200;
+    // Vast expansive ocean plane (2400m x 2400m, 180 segments) at water level y = 0.18
+    const size = 2400;
+    const segments = 180;
     const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
     geometry.rotateX(-Math.PI / 2);
 
-    // Hyper-realistic ocean shader with warm sunset reflections
+    // Hyper-realistic ocean shader matching user's reference screenshot:
+    // - Shallow near shore: luminous, crystal light blue / cyan
+    // - Smooth gradual change in shade through clear tropical teal to deep dark blue
+    // - Delicate white shore surf foam lines along sand contact
+    // - Floating sakura blossom petals scattered on water surface
+    // - Clean, crisp specular glints without muddy orange wash
     this.oceanMaterial = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: true,
@@ -328,7 +330,7 @@ export class IslandWorld {
         uRevealRadius: { value: this.revealRadius },
         uWaveColor: { value: this.waveColor },
         uTime: { value: 0.0 },
-        uSunDir: { value: new THREE.Vector3(-0.58, 0.075, -0.81).normalize() }
+        uSunDir: { value: new THREE.Vector3(-0.58, 0.002, -0.81).normalize() }
       },
       vertexShader: `
         uniform float uTime;
@@ -340,19 +342,19 @@ export class IslandWorld {
           vUv = uv;
           vec4 worldPos = modelMatrix * vec4(position, 1.0);
 
-          // Gerstner wave displacement for natural ocean swells
-          float w1 = sin(worldPos.x * 0.10 + uTime * 1.5) * 0.07;
-          float w2 = cos(worldPos.z * 0.14 + uTime * 1.8) * 0.05;
-          float w3 = sin((worldPos.x + worldPos.z) * 0.22 + uTime * 2.2) * 0.03;
+          // Gentle Gerstner wave displacement for natural ocean swells
+          float w1 = sin(worldPos.x * 0.08 + uTime * 1.5) * 0.06;
+          float w2 = cos(worldPos.z * 0.12 + uTime * 1.8) * 0.04;
+          float w3 = sin((worldPos.x + worldPos.z) * 0.18 + uTime * 2.2) * 0.025;
 
           worldPos.y = 0.18 + (w1 + w2 + w3);
           vWorldPos = worldPos.xyz;
 
           // Wave surface normal perturbation
-          float dHdx = 0.10 * 0.07 * cos(worldPos.x * 0.10 + uTime * 1.5) 
-                     + 0.22 * 0.03 * cos((worldPos.x + worldPos.z) * 0.22 + uTime * 2.2);
-          float dHdz = -0.14 * 0.05 * sin(worldPos.z * 0.14 + uTime * 1.8) 
-                     + 0.22 * 0.03 * cos((worldPos.x + worldPos.z) * 0.22 + uTime * 2.2);
+          float dHdx = 0.08 * 0.06 * cos(worldPos.x * 0.08 + uTime * 1.5) 
+                     + 0.18 * 0.025 * cos((worldPos.x + worldPos.z) * 0.18 + uTime * 2.2);
+          float dHdz = -0.12 * 0.04 * sin(worldPos.z * 0.12 + uTime * 1.8) 
+                     + 0.18 * 0.025 * cos((worldPos.x + worldPos.z) * 0.18 + uTime * 2.2);
           vWaveNormal = normalize(vec3(-dHdx, 1.0, -dHdz));
 
           gl_Position = projectionMatrix * viewMatrix * worldPos;
@@ -368,7 +370,7 @@ export class IslandWorld {
         varying vec3 vWaveNormal;
         varying vec2 vUv;
 
-        // Coastline equation matching JS (much bigger island)
+        // Coastline equation matching JS (expansive organic island)
         float getCoastRadius(float angle) {
           return 88.0 
             + 18.0 * sin(angle * 2.0 - 0.4) 
@@ -380,8 +382,8 @@ export class IslandWorld {
         void main() {
           float dist = length(vWorldPos.xz);
 
-          // Reveal clipping: hide sea beyond expanding circle
-          if (dist > uRevealRadius) {
+          // Reveal clipping: hide sea beyond expanding circle (fully revealed when radius > 1100)
+          if (uRevealRadius < 1100.0 && dist > uRevealRadius) {
             discard;
           }
 
@@ -394,67 +396,89 @@ export class IslandWorld {
             discard;
           }
 
-          // Sea Color Gradient (matching reference screenshot)
-          // 1. Crystal translucent shallow turquoise near the beach
-          vec3 shallowTurquoise = vec3(0.08, 0.88, 0.82);
-          // 2. Vibrant tropical cyan/azure at mid-depth
-          vec3 midCyan = vec3(0.04, 0.58, 0.72);
-          // 3. Deep sapphire ocean in open waters
-          vec3 deepNavy = vec3(0.05, 0.22, 0.42);
+          // Exact water shades from user reference screenshot:
+          // 1. Shallow near shore: luminous light blue / aqua cyan (#2cd5c4 / #2ec9c3)
+          vec3 shallowLightBlue = vec3(0.18, 0.85, 0.82);
+          // 2. Intermediate depth: clear tropical teal-blue (#1a85a6)
+          vec3 midTealBlue      = vec3(0.10, 0.54, 0.66);
+          // 3. Deeper water: rich oceanic dark blue (#10385c)
+          vec3 deepDarkBlue     = vec3(0.06, 0.22, 0.36);
+          // 4. Abyss / open ocean horizon: deep navy blue (#0a2440)
+          vec3 oceanAbyss       = vec3(0.04, 0.14, 0.25);
 
-          float depthT = clamp((distToCoast + 1.0) / 36.0, 0.0, 1.0);
-          vec3 waterBase = mix(shallowTurquoise, midCyan, smoothstep(0.0, 0.4, depthT));
-          waterBase = mix(waterBase, deepNavy, smoothstep(0.4, 1.0, depthT));
+          // Smooth gradual change in shade from shallow light blue to deep dark blue
+          float depthFactor = clamp(distToCoast / 45.0, 0.0, 1.0);
+          float t1 = smoothstep(0.0, 0.28, depthFactor);
+          float t2 = smoothstep(0.22, 0.82, depthFactor);
+          float t3 = smoothstep(0.70, 1.00, depthFactor);
+
+          vec3 waterBase = mix(shallowLightBlue, midTealBlue, t1);
+          waterBase = mix(waterBase, deepDarkBlue, t2);
+          waterBase = mix(waterBase, oceanAbyss, t3);
 
           // Animated Shoreline Foam Waves (Surf Lines along the beach)
           float foam = 0.0;
-          if (distToCoast >= -1.2 && distToCoast <= 7.5) {
-            // Wave 1 rolling to shore
-            float surfPhase1 = distToCoast * 3.0 - uTime * 2.4;
-            float surf1 = sin(surfPhase1);
-            surf1 = smoothstep(0.35, 0.98, surf1) * smoothstep(7.0, 0.5, distToCoast);
-
+          if (distToCoast >= -1.0 && distToCoast <= 7.0) {
+            // Delicate white contact line directly against the sand
+            float rim = smoothstep(0.7, -0.3, distToCoast);
+            // Wave 1 rolling onto shore
+            float surf1 = smoothstep(0.52, 0.98, sin(distToCoast * 3.2 - uTime * 2.2)) 
+                        * smoothstep(6.5, 0.3, distToCoast);
             // Wave 2 secondary ripple
-            float surfPhase2 = distToCoast * 4.8 - uTime * 3.0 + sin(angle * 14.0) * 1.5;
-            float surf2 = sin(surfPhase2);
-            surf2 = smoothstep(0.55, 0.98, surf2) * smoothstep(5.0, 0.0, distToCoast);
+            float surf2 = smoothstep(0.65, 0.98, sin(distToCoast * 4.8 - uTime * 2.8 + sin(angle * 12.0) * 1.2)) 
+                        * smoothstep(4.5, 0.0, distToCoast);
 
-            // Shore contact line (gentle white lapping rim directly against sand)
-            float rim = smoothstep(1.0, -0.4, distToCoast);
-
-            foam = clamp(surf1 * 0.85 + surf2 * 0.6 + rim * 0.95, 0.0, 1.0);
+            foam = clamp(rim * 0.92 + surf1 * 0.72 + surf2 * 0.50, 0.0, 1.0);
           }
 
-          // Lighting, Specular & Fresnel with warm sunset reflections
+          // Floating sakura blossom petals scattered on water (as seen in screenshot)
+          vec2 petalCoord = vWorldPos.xz * 1.6;
+          vec2 cellId = floor(petalCoord);
+          vec2 cellFract = fract(petalCoord) - 0.5;
+          float petalHash = fract(sin(dot(cellId, vec2(127.1, 311.7))) * 43758.5453);
+          float hasPetal = step(0.86, petalHash) * step(0.4, distToCoast) * step(distToCoast, 34.0);
+          float petalDist = abs(cellFract.x) + abs(cellFract.y);
+          float petalMask = step(petalDist, 0.15) * hasPetal;
+          vec3 petalColor = mix(vec3(0.92, 0.30, 0.20), vec3(0.98, 0.48, 0.26), petalHash);
+
+          // Clean lighting & subtle wave shading (preserving pure blue colors)
           vec3 viewDir = normalize(cameraPosition - vWorldPos);
           vec3 normal = normalize(vWaveNormal);
 
-          // Fresnel reflection (water reflects warm sunset sky at grazing angles)
-          float fresnel = pow(1.0 - max(0.0, dot(viewDir, normal)), 3.8);
-          vec3 skyReflectColor = vec3(0.96, 0.48, 0.24); // Warm sunset golden-coral reflection!
+          // Subtle wave slope shading for 3D depth
+          float waveShade = dot(normal, vec3(0.0, 1.0, 0.0));
+          vec3 finalColor = waterBase * (0.86 + 0.14 * waveShade);
 
-          // Sun specular glint sparkle (golden sunset trail across waves)
+          // Very subtle soft sky reflection at grazing angles (cool tone, no orange wash)
+          float fresnel = pow(1.0 - max(0.0, dot(viewDir, normal)), 4.5);
+          vec3 skyCoolTone = vec3(0.20, 0.50, 0.70);
+          finalColor = mix(finalColor, skyCoolTone, fresnel * 0.18);
+
+          // Crisp localized specular glint (tight, never a flat hat-brim wash)
           vec3 halfVec = normalize(uSunDir + viewDir);
           float nDotH = max(0.0, dot(normal, halfVec));
-          float sunTrail = pow(nDotH, 50.0) * 1.8 + pow(nDotH, 200.0) * 2.8;
-
-          vec3 finalColor = mix(waterBase, skyReflectColor, fresnel * 0.55);
-          finalColor += vec3(1.0, 0.74, 0.40) * sunTrail;
+          float sunGlint = pow(nDotH, 120.0) * 0.75;
+          finalColor += vec3(1.0, 0.85, 0.60) * sunGlint;
 
           // Blend white surf foam onto the water surface
-          vec3 foamColor = vec3(1.0, 0.96, 0.92);
-          finalColor = mix(finalColor, foamColor, foam * 0.92);
+          vec3 whiteFoam = vec3(0.98, 0.99, 1.0);
+          finalColor = mix(finalColor, whiteFoam, foam * 0.92);
 
-          // Opacity: slightly transparent right at shallow shore, solid further out
-          float alpha = clamp(0.78 + depthT * 0.22 + foam * 0.22, 0.0, 0.98);
+          // Blend floating sakura petals on top of water
+          finalColor = mix(finalColor, petalColor, petalMask * 0.96);
+
+          // Opacity: slightly translucent at shore edge, solid deeper out
+          float alpha = clamp(0.86 + depthFactor * 0.14 + foam * 0.12, 0.0, 0.98);
 
           // Glowing energy pulse at the expanding circle boundary
-          float edgeDist = abs(dist - uRevealRadius);
-          if (edgeDist < 2.4) {
-            float edgeGlow = (1.0 - edgeDist / 2.4);
-            edgeGlow = pow(edgeGlow, 2.0);
-            finalColor += uWaveColor * edgeGlow * 3.5;
-            alpha = 1.0;
+          if (uRevealRadius < 1100.0) {
+            float edgeDist = abs(dist - uRevealRadius);
+            if (edgeDist < 2.4) {
+              float edgeGlow = (1.0 - edgeDist / 2.4);
+              edgeGlow = pow(edgeGlow, 2.0);
+              finalColor += uWaveColor * edgeGlow * 3.5;
+              alpha = 1.0;
+            }
           }
 
           gl_FragColor = vec4(finalColor, alpha);

@@ -542,7 +542,7 @@ class GameIntroWorld {
       if (this.dirLight) {
         this.dirLight.intensity = THREE.MathUtils.lerp(this.dirLight.intensity, 1.85, lerpSpeed);
         this.dirLight.color.lerp(new THREE.Color(0xff7426), lerpSpeed);
-        this.dirLight.position.lerp(new THREE.Vector3(-65, 8.5, -90), lerpSpeed);
+        this.dirLight.position.lerp(new THREE.Vector3(-65, 2.5, -90), lerpSpeed);
       }
 
       // 4. Ambient Light: deep purple-violet ambient from reference screenshot shadows
