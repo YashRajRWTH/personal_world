@@ -3,7 +3,8 @@ import {
   createPaverTexture,
   createInfiniteGridMaterial,
   createNeonRingMaterial,
-  createBlossomMaterial
+  createBlossomMaterial,
+  createClickToStartTexture
 } from './materials.js';
 
 export class WorldEnvironment {
@@ -17,6 +18,9 @@ export class WorldEnvironment {
     this.neonRingMesh = null;
     this.neonRingLight = null;
     this.gridMaterial = null;
+    this.clickToStartMesh = null;
+    this.clickToStartMat = null;
+    this.isHidingClickToStart = false;
 
     this.init();
   }
@@ -27,6 +31,7 @@ export class WorldEnvironment {
     this.createParkBench();
     this.createCherryBlossomTrees();
     this.createGrassAndRocks();
+    this.createClickToStartText();
     this.createInfiniteGridFloor();
     this.createParticleSystems();
   }
@@ -628,6 +633,45 @@ export class WorldEnvironment {
       const flicker = 1.0 + Math.sin(time * 12.0) * 0.02 + Math.cos(time * 35.0) * 0.015;
       this.lampPointLight.intensity = 3.8 * flicker;
     }
+
+    // 6. "CLICK TO START" text fadeout once activated
+    if (this.clickToStartMesh && this.isHidingClickToStart) {
+      if (this.clickToStartMat.opacity > 0.01) {
+        this.clickToStartMat.opacity = Math.max(0, this.clickToStartMat.opacity - delta * 2.5);
+      } else {
+        this.clickToStartMesh.visible = false;
+      }
+    }
+  }
+
+  createClickToStartText() {
+    const texture = createClickToStartTexture();
+
+    this.clickToStartMat = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 1.0,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+
+    // 9.6 x 9.6 plane covering the circular island (radius 4.8) with curved text
+    const geo = new THREE.PlaneGeometry(9.6, 9.6);
+    this.clickToStartMesh = new THREE.Mesh(geo, this.clickToStartMat);
+
+    // Centered on the diorama island, resting on top of the sand (y = 0.556)
+    this.clickToStartMesh.position.set(0.0, 0.556, 0.0);
+
+    // Flat on the sand
+    this.clickToStartMesh.rotation.x = -Math.PI / 2;
+    this.clickToStartMesh.rotation.z = 0;
+
+    this.clickToStartMesh.name = 'clickToStartText';
+    this.scene.add(this.clickToStartMesh);
+  }
+
+  hideClickToStart() {
+    this.isHidingClickToStart = true;
   }
 
   setNeonColor(colorHex) {

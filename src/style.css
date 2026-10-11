@@ -279,6 +279,134 @@ html, body {
   border-color: rgba(255, 255, 255, 0.5);
 }
 
+/* Responsive View Modes */
+.mobile-only {
+  display: none !important;
+}
+
+.desktop-only {
+  display: flex !important;
+}
+
+/* =========================================================
+   CAMERA DROPDOWN (MOBILE VERSION)
+   ========================================================= */
+
+.cam-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.cam-dropdown-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 116px;
+  backdrop-filter: blur(14px);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.cam-dropdown-btn:hover,
+.cam-dropdown.open .cam-dropdown-btn {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(157, 78, 221, 0.6);
+  box-shadow: 0 0 14px rgba(157, 78, 221, 0.4);
+}
+
+.cam-dropdown-current {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.3px;
+}
+
+.cam-dropdown-chevron {
+  font-size: 0.72rem;
+  opacity: 0.8;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cam-dropdown.open .cam-dropdown-chevron {
+  transform: rotate(180deg);
+}
+
+.cam-dropdown-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  min-width: 126px;
+  background: rgba(15, 11, 23, 0.95);
+  border: 1px solid rgba(157, 78, 221, 0.35);
+  backdrop-filter: blur(24px);
+  border-radius: 12px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 16px rgba(157, 78, 221, 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.96);
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 100;
+}
+
+.cam-dropdown.open .cam-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.cam-dropdown-opt {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.15s ease;
+}
+
+.cam-dropdown-opt:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.cam-dropdown-opt.active {
+  background: linear-gradient(135deg, rgba(123, 44, 191, 0.5), rgba(157, 78, 221, 0.35));
+  color: #ffffff;
+  font-weight: 700;
+  border: 1px solid rgba(157, 78, 221, 0.6);
+  box-shadow: 0 0 10px rgba(157, 78, 221, 0.3);
+}
+
+.cam-dropdown-opt.active::after {
+  content: "✓";
+  font-size: 0.72rem;
+  color: #00d2d3;
+}
+
 /* =========================================================
    LAUNCH TOAST NOTIFICATION
    ========================================================= */
@@ -326,6 +454,12 @@ html, body {
 
 /* Responsive adjustments - Mobile First */
 @media (max-width: 768px) {
+  .mobile-only {
+    display: block !important;
+  }
+  .desktop-only {
+    display: none !important;
+  }
   .top-controls {
     top: 14px;
     right: 14px;
@@ -337,9 +471,10 @@ html, body {
   }
   .dashboard-bar {
     bottom: 12px;
-    gap: 14px;
+    gap: 16px;
     padding: 8px 16px;
     max-width: calc(100vw - 20px);
+    overflow: visible; /* Prevents clipping of the upward dropdown menu */
   }
   .color-swatch {
     width: 28px;

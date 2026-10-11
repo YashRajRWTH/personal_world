@@ -56,11 +56,25 @@
     <!-- Camera Angles -->
     <div class="dash-section">
       <span class="section-label">CAMERA VIEW</span>
-      <div class="cam-presets">
-        <button class="dash-btn cam-btn active" id="cam-iso" title="Original Diorama View">Isometric</button>
-        <button class="dash-btn cam-btn" id="cam-close" title="Close-Up View">Close-Up</button>
-        <button class="dash-btn cam-btn" id="cam-front" title="Front Hero View">Front</button>
-        <button class="dash-btn cam-btn" id="cam-top" title="Top-Down View">Top</button>
+      <!-- Desktop Presets -->
+      <div class="cam-presets desktop-only">
+        <button class="dash-btn cam-btn active" data-cam="iso" id="cam-iso" title="Original Diorama View">Isometric</button>
+        <button class="dash-btn cam-btn" data-cam="close" id="cam-close" title="Close-Up View">Close-Up</button>
+        <button class="dash-btn cam-btn" data-cam="front" id="cam-front" title="Front Hero View">Front</button>
+        <button class="dash-btn cam-btn" data-cam="top" id="cam-top" title="Top-Down View">Top</button>
+      </div>
+      <!-- Mobile Dropdown Version -->
+      <div class="cam-dropdown mobile-only" id="cam-dropdown">
+        <button class="cam-dropdown-btn" id="cam-dropdown-btn" type="button" aria-expanded="false" aria-haspopup="listbox" title="Select Camera View">
+          <span class="cam-dropdown-current" id="cam-current-text">Isometric</span>
+          <span class="cam-dropdown-chevron">▾</span>
+        </button>
+        <div class="cam-dropdown-menu" id="cam-dropdown-menu" role="listbox">
+          <button class="cam-dropdown-opt active" data-cam="iso" role="option" aria-selected="true">Isometric</button>
+          <button class="cam-dropdown-opt" data-cam="close" role="option" aria-selected="false">Close-Up</button>
+          <button class="cam-dropdown-opt" data-cam="front" role="option" aria-selected="false">Front</button>
+          <button class="cam-dropdown-opt" data-cam="top" role="option" aria-selected="false">Top</button>
+        </div>
       </div>
     </div>
   </footer>

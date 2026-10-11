@@ -175,3 +175,109 @@ export function createBlossomMaterial(baseColorHex = 0x6e3152) {
 
   return customMat;
 }
+
+// "CLICK TO START" curved along the circular diorama boundary at the side of the vehicle
+export function createClickToStartTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 2048;
+  canvas.height = 2048;
+  const ctx = canvas.getContext('2d');
+
+  const cx = 1024;
+  const cy = 1024;
+  // Radius in canvas pixels: island rim is ~980px, place text at 785px
+  const R = 785;
+  const text = 'CLICK   TO   START';
+
+  function renderText() {
+    ctx.clearRect(0, 0, 2048, 2048);
+
+    ctx.save();
+    // Big hand-lettered bold font matching reference screenshot (bigger size: 148px)
+    ctx.font = '600 148px "Caveat", "Outfit", cursive, sans-serif';
+
+    // Measure character widths for precise arc positioning
+    const charWidths = [];
+    let totalWidth = 0;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const w = ch === ' ' ? 55 : ctx.measureText(ch).width + 8;
+      charWidths.push(w);
+      totalWidth += w;
+    }
+
+    const dTheta = totalWidth / R;
+    // Centered around ~37 degrees (facing the side/front-right of the car)
+    const thetaCenter = 0.64;
+    let theta = thetaCenter + dTheta / 2;
+
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const w = charWidths[i];
+      const alpha = theta - (w / 2) / R;
+      theta -= w / R;
+
+      if (ch === ' ') continue;
+
+      const x = cx + R * Math.cos(alpha);
+      const y = cy + R * Math.sin(alpha);
+      const angle = alpha - Math.PI / 2;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Soft drop shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 4;
+
+      // Thin delicate outline (2.5px) for crisp contrast on sand
+      ctx.strokeStyle = 'rgba(5, 2, 10, 0.75)';
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(ch, 0, 0);
+
+      // Pure solid white fill
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(ch, 0, 0);
+
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  renderText();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+
+  if (document.fonts) {
+    document.fonts.load('600 148px "Caveat"').then(() => {
+      renderText();
+      texture.needsUpdate = true;
+    }).catch(() => {});
+
+    document.fonts.ready.then(() => {
+      renderText();
+      texture.needsUpdate = true;
+    });
+
+    setTimeout(() => {
+      renderText();
+      texture.needsUpdate = true;
+    }, 400);
+  }
+
+  return texture;
+}
+
+
+
