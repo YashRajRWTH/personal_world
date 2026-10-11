@@ -217,7 +217,7 @@ class SoundEngine {
 
       gain.gain.setValueAtTime(0, now + idx * 0.08);
       gain.gain.linearRampToValueAtTime(0.12, now + idx * 0.08 + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 1.2);
+      gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 1.2);
 
       osc.connect(gain);
       gain.connect(this.masterGain);
@@ -226,6 +226,80 @@ class SoundEngine {
       osc.stop(now + idx * 0.08 + 1.25);
     });
   }
+
+  // Dramatic resonant synth sweep for the expanding circle transition
+  playExpansionSwell() {
+    if (!this.ctx) this.init();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(55, now);
+    osc.frequency.exponentialRampToValueAtTime(440, now + 2.5);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(120, now);
+    filter.frequency.exponentialRampToValueAtTime(2800, now + 2.2);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.22, now + 0.6);
+    gain.gain.linearRampToValueAtTime(0.28, now + 1.8);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 3.2);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 3.3);
+
+    this.startOceanWaves();
+  }
+
+  // Procedural gentle ocean surf waves (filtered modulated white noise)
+  startOceanWaves() {
+    if (!this.ctx || this.oceanSource) return;
+
+    const bufferSize = this.ctx.sampleRate * 4;
+    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    this.oceanSource = this.ctx.createBufferSource();
+    this.oceanSource.buffer = noiseBuffer;
+    this.oceanSource.loop = true;
+
+    const oceanFilter = this.ctx.createBiquadFilter();
+    oceanFilter.type = 'bandpass';
+    oceanFilter.frequency.setValueAtTime(450, this.ctx.currentTime);
+    oceanFilter.Q.setValueAtTime(1.2, this.ctx.currentTime);
+
+    // LFO for rhythmic tide swells (every ~4.5s)
+    const waveLfo = this.ctx.createOscillator();
+    waveLfo.frequency.setValueAtTime(0.22, this.ctx.currentTime);
+    const waveLfoGain = this.ctx.createGain();
+    waveLfoGain.gain.setValueAtTime(250, this.ctx.currentTime);
+    waveLfo.connect(waveLfoGain);
+    waveLfoGain.connect(oceanFilter.frequency);
+    waveLfo.start();
+
+    this.oceanGain = this.ctx.createGain();
+    this.oceanGain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+
+    this.oceanSource.connect(oceanFilter);
+    oceanFilter.connect(this.oceanGain);
+    this.oceanGain.connect(this.masterGain);
+
+    this.oceanSource.start();
+  }
 }
 
 export const sound = new SoundEngine();
+

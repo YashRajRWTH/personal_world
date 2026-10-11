@@ -6,21 +6,33 @@ import {
   createBlossomMaterial,
   createClickToStartTexture
 } from './materials.js';
+import { IslandWorld } from './island.js';
 
 export class WorldEnvironment {
   constructor(scene) {
     this.scene = scene;
+
+    // Diorama elements grouped for seamless transition fadeout
+    this.dioramaGroup = new THREE.Group();
+    this.scene.add(this.dioramaGroup);
+
     this.animatedMaterials = [];
     this.petals = null;
     this.fireflies = null;
     this.lampPointLight = null;
     this.lampSpotLight = null;
     this.neonRingMesh = null;
-    this.neonRingLight = null;
+    this.neonRingMat = null;
+    this.pedestalMesh = null;
+    this.dioramaIslandGroup = null;
+    this.gridFloor = null;
     this.gridMaterial = null;
     this.clickToStartMesh = null;
     this.clickToStartMat = null;
     this.isHidingClickToStart = false;
+
+    // Hyper-Realistic Island & Ocean World
+    this.islandWorld = new IslandWorld(this.scene);
 
     this.init();
   }
@@ -37,11 +49,11 @@ export class WorldEnvironment {
   }
 
   createDioramaIsland() {
-    const islandGroup = new THREE.Group();
+    this.dioramaIslandGroup = new THREE.Group();
     const radius = 4.8;
     const height = 0.55;
 
-    // Cylinder base
+    // Cylinder base with original dark synthwave paver tiles
     const cylinderGeo = new THREE.CylinderGeometry(radius, radius + 0.15, height, 64);
     const paverTex = createPaverTexture();
 
@@ -61,9 +73,10 @@ export class WorldEnvironment {
     const pedestal = new THREE.Mesh(cylinderGeo, [sideMat, topMat, sideMat]);
     pedestal.position.y = height / 2;
     pedestal.receiveShadow = true;
-    islandGroup.add(pedestal);
+    this.pedestalMesh = pedestal;
+    this.dioramaIslandGroup.add(pedestal);
 
-    // Glowing Neon Rim Ring (Default Cyber Cyan glow)
+    // Glowing Neon Rim Ring (Original Cyber Cyan glow: 0x00d2d3, 1.8 intensity)
     const ringRadius = radius + 0.04;
     const ringTube = 0.07;
     const ringGeo = new THREE.TorusGeometry(ringRadius, ringTube, 24, 96);
@@ -71,7 +84,7 @@ export class WorldEnvironment {
     this.neonRingMesh = new THREE.Mesh(ringGeo, this.neonRingMat);
     this.neonRingMesh.rotation.x = Math.PI / 2;
     this.neonRingMesh.position.y = height + 0.02;
-    islandGroup.add(this.neonRingMesh);
+    this.dioramaIslandGroup.add(this.neonRingMesh);
 
     // Outer subtle underglow ring (cyan glow)
     const underRingGeo = new THREE.RingGeometry(radius - 0.2, radius + 0.8, 64);
@@ -84,9 +97,9 @@ export class WorldEnvironment {
     const underRing = new THREE.Mesh(underRingGeo, underRingMat);
     underRing.rotation.x = Math.PI / 2;
     underRing.position.y = height - 0.02;
-    islandGroup.add(underRing);
+    this.dioramaIslandGroup.add(underRing);
 
-    this.scene.add(islandGroup);
+    this.dioramaGroup.add(this.dioramaIslandGroup);
   }
 
   createStreetLamp() {
@@ -223,7 +236,7 @@ export class WorldEnvironment {
     this.lampSpotLight.shadow.radius = 2.5;
     lampGroup.add(this.lampSpotLight);
 
-    this.scene.add(lampGroup);
+    this.dioramaGroup.add(lampGroup);
   }
 
   createParkBench() {
@@ -305,7 +318,7 @@ export class WorldEnvironment {
       benchGroup.add(legFrame);
     });
 
-    this.scene.add(benchGroup);
+    this.dioramaGroup.add(benchGroup);
   }
 
   createCherryBlossomTrees() {
@@ -392,7 +405,7 @@ export class WorldEnvironment {
         treeGroup.add(foliageMesh);
       });
 
-      this.scene.add(treeGroup);
+      this.dioramaGroup.add(treeGroup);
     });
   }
 
@@ -473,7 +486,7 @@ export class WorldEnvironment {
       floraGroup.add(rock);
     });
 
-    this.scene.add(floraGroup);
+    this.dioramaGroup.add(floraGroup);
   }
 
   createInfiniteGridFloor() {
@@ -481,10 +494,10 @@ export class WorldEnvironment {
     const planeGeo = new THREE.PlaneGeometry(200, 200, 1, 1);
     this.gridMaterial = createInfiniteGridMaterial();
 
-    const floor = new THREE.Mesh(planeGeo, this.gridMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0.0;
-    this.scene.add(floor);
+    this.gridFloor = new THREE.Mesh(planeGeo, this.gridMaterial);
+    this.gridFloor.rotation.x = -Math.PI / 2;
+    this.gridFloor.position.y = 0.0;
+    this.dioramaGroup.add(this.gridFloor);
   }
 
   createParticleSystems() {
@@ -538,7 +551,7 @@ export class WorldEnvironment {
 
     this.petals = new THREE.Points(petalGeo, petalMat);
     this.petals.userData.velocities = petalVelocities;
-    this.scene.add(this.petals);
+    this.dioramaGroup.add(this.petals);
 
     // 2. Floating Fireflies / Warm Embers around the Street Lamp
     const fireflyCount = 45;
@@ -573,10 +586,28 @@ export class WorldEnvironment {
 
     this.fireflies = new THREE.Points(fireflyGeo, fireflyMat);
     this.fireflies.userData.vel = fireflyVel;
-    this.scene.add(this.fireflies);
+    this.dioramaGroup.add(this.fireflies);
   }
 
   update(time, delta) {
+    // 0. Update Island & Ocean World
+    if (this.islandWorld) {
+      this.islandWorld.update(time, delta);
+
+      // Once expansion begins, hide the pedestal base completely to prevent any Z-fighting on the island
+      if (this.islandWorld.isRevealing) {
+        if (this.dioramaIslandGroup && this.dioramaIslandGroup.visible) {
+          this.dioramaIslandGroup.visible = false;
+        }
+        if (this.gridFloor && this.gridFloor.visible) {
+          const fadeT = Math.min(1.0, (this.islandWorld.revealRadius - 4.8) / 10.0);
+          if (fadeT >= 1.0) {
+            this.gridFloor.visible = false;
+          }
+        }
+      }
+    }
+
     // 1. Update animated blossom foliage shader
     this.animatedMaterials.forEach((mat) => {
       if (mat.userData.shader) {
@@ -585,11 +616,11 @@ export class WorldEnvironment {
     });
 
     // 2. Update infinite grid time uniform
-    if (this.gridMaterial) {
+    if (this.gridMaterial && (!this.gridFloor || this.gridFloor.visible)) {
       this.gridMaterial.uniforms.uTime.value = time;
     }
 
-    // 3. Update Sakura Petals
+    // 3. Update Sakura Petals (stay active permanently)
     if (this.petals) {
       const posAttr = this.petals.geometry.attributes.position;
       const vels = this.petals.userData.velocities;
@@ -613,7 +644,7 @@ export class WorldEnvironment {
       posAttr.needsUpdate = true;
     }
 
-    // 4. Update Fireflies around lantern
+    // 4. Update Fireflies around lantern (stay active permanently)
     if (this.fireflies) {
       const posAttr = this.fireflies.geometry.attributes.position;
       const vels = this.fireflies.userData.vel;
@@ -667,17 +698,31 @@ export class WorldEnvironment {
     this.clickToStartMesh.rotation.z = 0;
 
     this.clickToStartMesh.name = 'clickToStartText';
-    this.scene.add(this.clickToStartMesh);
+    this.dioramaGroup.add(this.clickToStartMesh);
   }
 
   hideClickToStart() {
     this.isHidingClickToStart = true;
   }
 
+  startWorldExpansion(colorHex) {
+    if (this.islandWorld) {
+      this.islandWorld.triggerReveal(colorHex);
+    }
+    // Remove the base pedestal completely once reveal begins
+    if (this.dioramaIslandGroup) {
+      this.dioramaIslandGroup.visible = false;
+    }
+    this.hideClickToStart();
+  }
+
   setNeonColor(colorHex) {
     if (this.neonRingMat) {
       this.neonRingMat.color.setHex(colorHex);
       this.neonRingMat.emissive.setHex(colorHex);
+    }
+    if (this.islandWorld) {
+      this.islandWorld.setWaveColor(colorHex);
     }
   }
 }
